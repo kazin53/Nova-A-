@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deepseek AI</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 800px;
+      padding: 30px;
+      background-color: #161b22;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      border: 1px solid #30363d;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5em;
+      color: #58a6ff;
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+    }
+    p.subtitle {
+      font-size: 1em;
+      color: #8b949e;
+      margin-bottom: 30px;
+    }
+    .chat-box {
+      min-height: 200px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 15px;
+      background-color: #0d1117;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+      text-align: left;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .user-message {
+      color: #c9d1d9;
+      margin-bottom: 10px;
+      background-color: #23282f;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: right;
+    }
+    .ai-response {
+      color: #58a6ff;
+      margin-bottom: 10px;
+      background-color: #0f243a;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .input-container {
+      display: flex;
+      gap: 10px;
+    }
+    #pergunta {
+      flex-grow: 1;
+      padding: 12px;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-size: 1em;
+      transition: border-color 0.3s;
+    }
+    #pergunta:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+    button {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      background-color: #58a6ff;
+      color: #0d1117;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    button:hover {
+      background-color: #6cb6ff;
+      transform: translateY(-2px);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    #loader {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #58a6ff;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Deepseek AI Chat</h1>
+    <p class="subtitle">Faça suas perguntas e obtenha respostas instantâneas.</p>
+    
+    <div class="chat-box" id="chat-box">
+      <div class="ai-response">Olá! Como posso ajudar você hoje?</div>
+    </div>
+    
+    <div class="input-container">
+      <input type="text" id="pergunta" placeholder="Digite sua pergunta...">
+      <button onclick="enviarPergunta()">Enviar</button>
+      <div id="loader"></div>
+    </div>
+  </div>
+
+  <script>
+    async function enviarPergunta() {
+      const perguntaInput = document.getElementById("pergunta");
+      const pergunta = perguntaInput.value.trim();
+      if (!pergunta) return;
+
+      const chatBox = document.getElementById("chat-box");
+      const loader = document.getElementById("loader");
+      const button = document.querySelector('button');
+
+      // Adicionar a pergunta do usuário ao chat
+      const userMessage = document.createElement("div");
+      userMessage.classList.add("user-message");
+      userMessage.innerText = pergunta;
+      chatBox.appendChild(userMessage);
+
+      perguntaInput.value = ""; // Limpar o campo de entrada
+      chatBox.scrollTop = chatBox.scrollHeight; // Rolar para a última mensagem
+
+      // Mostrar o loader e desabilitar o botão
+      loader.style.display = "block";
+      button.disabled = true;
+
+      try {
+        const resposta = await fetch("/perguntar", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ mensagem: pergunta })
+        });
+
+        const dados = await resposta.json();
+        const respostaTexto = dados.resposta || dados.erro;
+
+        // Adicionar a resposta da IA ao chat
+        const aiResponse = document.createElement("div");
+        aiResponse.classList.add("ai-response");
+        aiResponse.innerText = respostaTexto;
+        chatBox.appendChild(aiResponse);
+
+      } catch (error) {
+        // Lidar com erros de conexão
+        const aiError = document.createElement("div");
+        aiError.classList.add("ai-response");
+        aiError.innerText = "Desculpe, ocorreu um erro ao se conectar com a IA.";
+        chatBox.appendChild(aiError);
+      } finally {
+        // Ocultar o loader e reabilitar o botão
+        loader.style.display = "none";
+        button.disabled = false;
+        chatBox.scrollTop = chatBox.scrollHeight; // Rolar para a última mensagem
+      }
+    }
+
+    // Opcional: Enviar pergunta ao pressionar Enter
+    document.getElementById("pergunta").addEventListener("keypress", function(event) {
+      if (event.key === "Enter") {
+        enviarPergunta();
+      }
+    });
+  </script>
+</body>
+</html>
